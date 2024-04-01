@@ -1,46 +1,48 @@
-name: Deploy Website
+name: deploy cloudburst prediction
 
 on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: ["Terraform Apply"]
+    types:
+      - completed
 
 jobs:
-  deploy:
+  build-and-push:
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
-
-    env:
-      AWS_REGION: your-aws-region
-      AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_KEY }}
-       AWS_ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
-       
-      - name: Initialize Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: "1.0.0"
-
-      - name: Terraform init
-        run: terraform init
-
-      - name: Terraform apply
-        run: terraform apply -auto-approve
-
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Login to AWS ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.SECRET }}
+          aws-region: us-east-1
+
+          
+                  # Run Terraform commands
+      - name: Execute Terraform
+        run: |
+          cd terraform_code
+          terraform init
+          terraform plan -out=tfplan
+          terraform apply tfplan
+
+
+      - name: Login to Amazon ECR
+        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
 
       - name: Build Docker image
-        run: docker build -t your-image-name .
+        run: docker build -t app-repoo .
 
       - name: Tag Docker image
-        run: docker tag your-image-name:latest aws-account-id.dkr.ecr.region.amazonaws.com/your-repository-name:latest
+        run: docker tag app-repoo:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/app-repoo:latest
 
-      - name: Push Docker image to ECR
-        run: docker push aws-account-id.dkr.ecr.region.amazonaws.com/your-repository-name:latest
-
-   
+      - name: Push Docker image to Amazon ECR
+        run: docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/app-repoo:latest
