@@ -1,17 +1,12 @@
-name: deploy cloudburst prediction
+name: Deploy to ECR
 
 on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows: ["Terraform Apply"]
-    types:
-      - completed
 
 jobs:
   build-and-push:
-    name: Build and Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
@@ -23,26 +18,18 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.SECRET_KEY }}
-          aws-region: us-east-1
-
-          
-                  # Run Terraform commands
-      - name: Execute Terraform
-        run: |
-          cd flaskkeddit/Connecting-React-Frontend-to-a-Flask-Backend
-          terraform init
-          terraform plan -out=tfplan
-          terraform apply tfplan
-
+          aws-region: ap-south-1
 
       - name: Login to Amazon ECR
-        run: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+        run: |
+          aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 495132714723.dkr.ecr.ap-south-1.amazonaws.com
 
       - name: Build Docker image
         run: docker build -t bar .
 
       - name: Tag Docker image
-        run: docker tag bar:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/bar:latest
+        run: docker tag bar:latest 495132714723.dkr.ecr.ap-south-1.amazonaws.com/bar:latest
 
       - name: Push Docker image to Amazon ECR
-        run: docker push ${{ secrets.ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/bar:latest
+        run: docker push 495132714723.dkr.ecr.ap-south-1.amazonaws.com/bar:latest
+
