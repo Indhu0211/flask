@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd terragrunt
+          cd flaskkeddit/Connecting-React-Frontend-to-a-Flask-Backend/backend
           docker build -t bar .
 
       - name: Tag Docker image
